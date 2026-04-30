@@ -18,7 +18,7 @@ __global__ void reduce_max_kernel(const float* input, float* output, int N) {
     int laneid = tid % WARP_SIZE;
     int WARP_NUM = CEIL(blockDim.x, WARP_SIZE);
 
-    __shard__ float dshard[32];
+    __shared__ float dshard[32];
     float value = -FLT_MAX;
     for (int i = threadIdx.x; i < N; i += blockDim.x) {
         value = fmaxf(value, input[i]);
@@ -29,8 +29,8 @@ __global__ void reduce_max_kernel(const float* input, float* output, int N) {
     __syncthreads();
 
     if (warpid == 0) {
-        value = (laneid < WARP_NUM) ? dshard[laneid] : 0;
-        value = warpReduceMax(value);
+        value = (laneid < WARP_NUM) ? dshard[laneid] : -FLT_MAX;
+        value = WarpReduceMax(value);
     }
 
     if (threadIdx.x == 0)
